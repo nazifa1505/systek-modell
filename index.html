@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Systek-modellen — Skatteforståelse</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --blue: #1a56db;
+  --blue-mid: #3b82f6;
+  --blue-light: #eff6ff;
+  --blue-border: #bfdbfe;
+  --green: #059669;
+  --green-light: #ecfdf5;
+  --green-border: #a7f3d0;
+  --orange: #d97706;
+  --orange-light: #fffbeb;
+  --orange-border: #fde68a;
+  --red: #dc2626;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.6; font-size: 15px; }
+
+/* ── Layout ── */
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 16px 48px; }
+
+/* ── Header ── */
+.hero { background: linear-gradient(135deg, #1e40af 0%, #1a56db 60%, #2563eb 100%); color: #fff; padding: 40px 16px 36px; margin-bottom: 32px; }
+.hero h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+.hero p { opacity: 0.85; font-size: 0.95rem; max-width: 680px; }
+.hero .wrap { padding-bottom: 0; }
+
+/* ── Cards ── */
+.card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 24px; border: 1px solid var(--gray-200); }
+.card-head { margin-bottom: 20px; }
+.card-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 2px; }
+.card-sub { font-size: 0.82rem; color: var(--gray-400); }
+
+/* ── Section chip ── */
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--blue); background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: 20px; padding: 3px 10px; margin-bottom: 10px; }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 0.82rem; font-weight: 600; color: var(--gray-700); }
+.form-group label small { font-weight: 400; color: var(--gray-400); }
+input[type="number"], select {
+  border: 1.5px solid var(--gray-200); border-radius: 8px; padding: 9px 12px;
+  font-size: 0.9rem; color: var(--gray-900); background: #fff; width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input[type="number"]:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+input[type="range"] { flex: 1; accent-color: var(--blue); cursor: pointer; height: 4px; }
+.slider-val { font-size: 0.88rem; font-weight: 700; color: var(--blue); min-width: 46px; text-align: right; }
+
+/* ── Steps ── */
+.steps { display: flex; flex-direction: column; gap: 6px; }
+.step { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 9px 14px; background: var(--gray-50); border-radius: 8px; font-size: 0.88rem; border: 1px solid transparent; }
+.step.total { background: var(--blue-light); border-color: var(--blue-border); font-weight: 700; }
+.step .s-label { color: var(--gray-600); }
+.step.total .s-label { color: var(--blue); }
+.step .s-val { font-weight: 600; white-space: nowrap; }
+.s-val.neg { color: var(--green); }
+.s-val.pos { color: var(--red); }
+
+/* ── Stat grid ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.stat { background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 14px; }
+.stat.s-blue { background: var(--blue-light); border-color: var(--blue-border); }
+.stat.s-green { background: var(--green-light); border-color: var(--green-border); }
+.stat.s-orange { background: var(--orange-light); border-color: var(--orange-border); }
+.stat-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.stat-value { font-size: 1.2rem; font-weight: 800; color: var(--gray-900); line-height: 1.2; }
+.stat.s-blue .stat-value { color: var(--blue); }
+.stat.s-green .stat-value { color: var(--green); }
+.stat.s-orange .stat-value { color: var(--orange); }
+.stat-note { font-size: 0.75rem; color: var(--gray-400); margin-top: 3px; }
+
+/* ── Info box ── */
+.info { background: var(--blue-light); border-left: 3px solid var(--blue); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 0.84rem; color: #1e40af; line-height: 1.65; margin-top: 16px; }
+.info.good { background: var(--green-light); border-color: var(--green); color: #065f46; }
+.info.warn { background: var(--orange-light); border-color: var(--orange); color: #92400e; }
+
+/* ── Chart wrappers ── */
+.chart-wrap { position: relative; margin-top: 20px; }
+.chart-h80  { height: 80px; }
+.chart-h200 { height: 220px; }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x: auto; margin-top: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+thead th { background: var(--gray-100); text-align: left; padding: 9px 12px; font-size: 0.75rem; font-weight: 700; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.04em; }
+tbody td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tr.best td { background: var(--green-light); font-weight: 600; color: var(--green); }
+tr.worst td { background: var(--orange-light); }
+
+/* ── Badge ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; margin-top: 3px; }
+.b-blue { background: var(--blue-light); color: var(--blue); }
+.b-green { background: var(--green-light); color: var(--green); }
+.b-orange { background: var(--orange-light); color: var(--orange); }
+
+/* ── Divider ── */
+hr { border: none; border-top: 1px solid var(--gray-200); margin: 20px 0; }
+
+
+/* ── Footer ── */
+footer { background: var(--gray-100); border-top: 1px solid var(--gray-200); padding: 28px 16px; font-size: 0.8rem; color: var(--gray-600); }
+footer a { color: var(--blue); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+footer h4 { font-size: 0.82rem; font-weight: 700; color: var(--gray-700); margin-bottom: 10px; }
+footer ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+footer li::before { content: '→ '; opacity: 0.5; }
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 1.5rem; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Systek-modellen</h1>
+    <p>Skatteforståelse for ansatte i Systek med holdingsselskap — hva koster det egentlig å kjøpe noe gjennom selskapet, og hvordan optimaliserer du strukturen?</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ─── GLOBALE INNSTILLINGER ─── -->
+  <div class="card">
+    <div class="chip">Innstillinger</div>
+    <div class="card-head">
+      <div class="card-title">Dine nøkkeltall</div>
+      <div class="card-sub">Gjelder for alle seksjoner nedenfor</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Årslønn fra Systek <small>(kr brutto)</small></label>
+        <input type="number" id="salary" value="900000" step="10000" min="0">
+      </div>
+      <div class="form-group">
+        <label>Arbeidsgiveravgift <small>(sone I = 14,1 %)</small></label>
+        <div class="slider-row">
+          <input type="range" id="agaRate" min="0" max="20" step="0.1" value="14.1">
+          <span class="slider-val" id="agaRateVal">14,1 %</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Selskapsskatt</label>
+        <div class="slider-row">
+          <input type="range" id="corpTax" min="10" max="30" step="0.5" value="22">
+          <span class="slider-val" id="corpTaxVal">22 %</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SEKSJON 1: ENKELT-KJØP ─── -->
+  <div class="card">
+    <div class="chip">Seksjon 1</div>
+    <div class="card-head">
+      <div class="card-title">Realkostnad ved selskaps-kjøp</div>
+      <div class="card-sub">Hva koster det Systek AS egentlig når du legger ut for noe til jobben?</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kjøpspris <small>(inkl. MVA)</small></label>
+        <input type="number" id="purchasePrice" value="11000" step="500" min="0">
+      </div>
+      <div class="form-group">
+        <label>MVA-sats</label>
+        <select id="mvaRate">
+          <option value="25">25 % — standard</option>
+          <option value="15">15 % — mat og drikke</option>
+          <option value="12">12 % — transport / hotell</option>
+          <option value="0">0 % — ingen MVA</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="purchaseSteps" class="steps"></div>
+
+    <div id="purchaseStats" class="stat-grid" style="margin-top:14px;"></div>
+
+    <div class="chart-wrap chart-h80">
+      <canvas id="purchaseChart"></canvas>
+    </div>
+
+    <div id="purchaseInfo" class="info"></div>
+  </div>
+
+  <!-- ─── SEKSJON 2: PERSONLIG SKATT ─── -->
+  <div class="card">
+    <div class="chip">Seksjon 2</div>
+    <div class="card-head">
+      <div class="card-title">Din personlige skatt — 2026-satser</div>
+      <div class="card-sub">Trinnskatt, trygdeavgift og alminnelig inntektsskatt. Årslønn hentes fra innstillinger ovenfor.</div>
+    </div>
+
+    <div id="taxSteps" class="steps"></div>
+    <div id="taxStats" class="stat-grid" style="margin-top:14px;"></div>
+
+    <hr>
+    <p style="font-size:0.78rem; color:var(--gray-400);">
+      Trinnskatt 2026 (Skatteetaten): 0 % / 1,7 % / 4,0 % / 13,7 % / 16,8 % / 17,8 %.
+      Minstefradrag 46 %, maks 104 450 kr. Personfradrag 88 250 kr. Trygdeavgift 7,8 %.
+    </p>
+  </div>
+
+  <!-- ─── SEKSJON 3: NULLPUNKT ─── -->
+  <div class="card">
+    <div class="chip">Seksjon 3</div>
+    <div class="card-head">
+      <div class="card-title">Selskapets nullpunkt</div>
+      <div class="card-sub">Når betaler selskapet 0 kr i selskapsskatt? Enkelt-kjøpet fra seksjon 1 legges til automatisk.</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Selskapets bruttoinntekter <small>(kr/år)</small></label>
+        <input type="number" id="companyRevenue" value="500000" step="10000" min="0">
+      </div>
+      <div class="form-group">
+        <label>Andre utgifter <small>(ekskl. kjøpet ovenfor)</small></label>
+        <input type="number" id="otherExpenses" value="50000" step="5000" min="0">
+      </div>
+    </div>
+
+    <div id="breakEvenStats" class="stat-grid"></div>
+    <div id="breakEvenInfo" class="info" style="margin-top:14px;"></div>
+
+    <div class="chart-wrap chart-h200">
+      <canvas id="breakEvenChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ─── SEKSJON 4: LØNN VS UTBYTTE ─── -->
+  <div class="card">
+    <div class="chip">Seksjon 4</div>
+    <div class="card-head">
+      <div class="card-title">Holdingsselskapet — lønn vs. utbytte</div>
+      <div class="card-sub">Tre måter å ta ut penger privat. Basert på aksjonærmodellen og fritaksmetoden.</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Ønsket kjøpekraft <small>(kr netto privat)</small></label>
+        <input type="number" id="targetNet" value="200000" step="10000" min="0">
+      </div>
+      <div class="form-group">
+        <label>Skjermingsgrunnlag <small>(innskutt kapital i holding)</small></label>
+        <input type="number" id="shieldBase" value="100000" step="10000" min="0">
+      </div>
+      <div class="form-group">
+        <label>Skjermingsrente <small>(3,6 % for 2025)</small></label>
+        <div class="slider-row">
+          <input type="range" id="shieldRate" min="0" max="10" step="0.1" value="3.6">
+          <span class="slider-val" id="shieldRateVal">3,6 %</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="dividendTable"></table>
+    </div>
+
+    <div id="dividendInfo" class="info good" style="margin-top:16px;"></div>
+
+    <div class="chart-wrap chart-h200">
+      <canvas id="dividendChart"></canvas>
+    </div>
+  </div>
+
+</div><!-- /.wrap -->
+
+<footer>
+  <div class="wrap" style="padding-bottom:0;">
+    <h4>Offisielle kilder (Skatteetaten &amp; Fiken)</h4>
+    <ul>
+      <li><a href="https://www.skatteetaten.no/en/rates/bracket-tax/" target="_blank">Trinnskatt 2026 — Skatteetaten</a></li>
+      <li><a href="https://www.skatteetaten.no/en/rates/employers-national-insurance-contributions/" target="_blank">Arbeidsgiveravgift (sone I: 14,1 %) — Skatteetaten</a></li>
+      <li><a href="https://www.skatteetaten.no/en/rates/general-income/" target="_blank">Alminnelig inntektsskatt 22 % — Skatteetaten</a></li>
+      <li><a href="https://www.skatteetaten.no/en/rates/risk-free-interest-rate-for-shares-and-sole-proprietorships/" target="_blank">Skjermingsrente 3,6 % (2025) — Skatteetaten</a></li>
+      <li><a href="https://www.skatteetaten.no/en/person/taxes/get-the-taxes-right/shares-and-securities/about-shares-and-securities/the-shareholder-model/" target="_blank">Aksjonærmodellen — Skatteetaten</a></li>
+      <li><a href="https://fiken.no/starte-enkeltpersonforetak/hva-er-mva" target="_blank">MVA-regler — Fiken</a></li>
+    </ul>
+    <p style="margin-top:14px; color:var(--gray-400);">Kalkulatoren er veiledende og erstatter ikke profesjonell rådgivning fra regnskapsfører. Oppjusteringsfaktor utbytte 2026: 1,72.</p>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// OFFISIELLE SATSER — SKATTEETATEN 2026
+// ═══════════════════════════════════════
+const TRINNSKATT = [
+  { fra: 0,       til: 226100,   sats: 0.000 },
+  { fra: 226100,  til: 318300,   sats: 0.017 },
+  { fra: 318300,  til: 725050,   sats: 0.040 },
+  { fra: 725050,  til: 980100,   sats: 0.137 },
+  { fra: 980100,  til: 1467200,  sats: 0.168 },
+  { fra: 1467200, til: Infinity, sats: 0.178 },
+];
+const TRYGDEAVGIFT      = 0.078;   // 7,8 %
+const ALMINNELIG_SATS   = 0.22;    // 22 %
+const MINSTEFRADRAG_PCT = 0.46;    // 46 %
+const MINSTEFRADRAG_MIN = 32000;
+const MINSTEFRADRAG_MAX = 104450;
+const PERSONFRADRAG     = 88250;
+const UTBYTTE_OPPJUST   = 1.72;    // 2026 — Skatteetaten
+const UTBYTTE_EFFEKTIV  = ALMINNELIG_SATS * UTBYTTE_OPPJUST; // 37,84 %
+const FRITAKS_EFFEKTIV  = 0.03 * ALMINNELIG_SATS;            // ~0,66 %
+
+// ═══════════════════════════════════════
+// CHART-INSTANSER
+// ═══════════════════════════════════════
+let chartPurchase, chartBreakEven, chartDividend;
+
+// ═══════════════════════════════════════
+// HJELPEFUNKSJONER
+// ═══════════════════════════════════════
+const kr  = n => new Intl.NumberFormat('nb-NO', { style:'currency', currency:'NOK', maximumFractionDigits:0 }).format(n);
+const pct = (n, d=1) => (n*100).toFixed(d).replace('.',',') + ' %';
+const num = id => parseFloat(document.getElementById(id).value) || 0;
+
+// ═══════════════════════════════════════
+// SKATTEBEREGNINGER
+// ═══════════════════════════════════════
+function beregnTrinnskatt(inntekt) {
+  let skatt = 0;
+  for (const b of TRINNSKATT) {
+    if (inntekt <= b.fra) break;
+    skatt += (Math.min(inntekt, b.til) - b.fra) * b.sats;
+  }
+  return skatt;
+}
+
+function marginalTrinnskattSats(inntekt) {
+  let sats = 0;
+  for (const b of TRINNSKATT) {
+    if (inntekt > b.fra) sats = b.sats;
+  }
+  return sats;
+}
+
+function beregnPersonligSkatt(brutto) {
+  const minstefradrag   = Math.min(Math.max(brutto * MINSTEFRADRAG_PCT, MINSTEFRADRAG_MIN), MINSTEFRADRAG_MAX);
+  const alminneligInnt  = Math.max(0, brutto - minstefradrag - PERSONFRADRAG);
+  const alminneligSkatt = alminneligInnt * ALMINNELIG_SATS;
+  const trinnskatt      = beregnTrinnskatt(brutto);
+  const trygdeavgift    = brutto * TRYGDEAVGIFT;
+  const totalSkatt      = alminneligSkatt + trinnskatt + trygdeavgift;
+  const netto           = brutto - totalSkatt;
+  const effektivSats    = brutto > 0 ? totalSkatt / brutto : 0;
+  const marginalSats    = marginalTrinnskattSats(brutto) + TRYGDEAVGIFT + ALMINNELIG_SATS;
+  return { minstefradrag, alminneligInnt, alminneligSkatt, trinnskatt, trygdeavgift, totalSkatt, netto, effektivSats, marginalSats };
+}
+
+function beregnKjop(pris, mvaSats, corpPct) {
+  const mvaFaktor      = mvaSats / (100 + mvaSats);
+  const mvaRefusjon    = pris * mvaFaktor;
+  const exMva          = pris - mvaRefusjon;
+  const skattebespar   = exMva * (corpPct / 100);
+  const realkostnad    = exMva - skattebespar;
+  return { mvaRefusjon, exMva, skattebespar, realkostnad };
+}
+
+// ═══════════════════════════════════════
+// RENDER: SEKSJON 1 — KJØP
+// ═══════════════════════════════════════
+function renderKjop() {
+  const pris    = num('purchasePrice');
+  const mvaSats = num('mvaRate');
+  const corpPct = num('corpTax');
+  const agaPct  = num('agaRate');
+  const salary  = num('salary');
+
+  const { mvaRefusjon, exMva, skattebespar, realkostnad } = beregnKjop(pris, mvaSats, corpPct);
+  const realPct = pris > 0 ? realkostnad / pris : 0;
+  const taxInfo = beregnPersonligSkatt(salary);
+
+  // Alternativkostnad: hva ville selskapet brukt for å gi tilsvarende kjøpekraft via lønn?
+  const bruttoTilsv  = pris > 0 ? pris / (1 - taxInfo.marginalSats) : 0;
+  const agaTilsv     = bruttoTilsv * (agaPct / 100);
+  const lonnKostnad  = bruttoTilsv + agaTilsv;
+  const besparelse   = lonnKostnad - realkostnad;
+
+  // Steps
+  document.getElementById('purchaseSteps').innerHTML = `
+    <div class="step"><span class="s-label">Kjøpspris inkl. ${mvaSats} % MVA</span><span class="s-val pos">${kr(pris)}</span></div>
+    <div class="step"><span class="s-label">− MVA-refusjon (${pct(mvaSats/(100+mvaSats))} av prisen)</span><span class="s-val neg">− ${kr(mvaRefusjon)}</span></div>
+    <div class="step"><span class="s-label">= Ex-MVA pris</span><span class="s-val">${kr(exMva)}</span></div>
+    <div class="step"><span class="s-label">− Selskapsskatt spart (${corpPct} % av ex-MVA)</span><span class="s-val neg">− ${kr(skattebespar)}</span></div>
+    <div class="step total"><span class="s-label">= Realkostnad for selskapet</span><span class="s-val">${kr(realkostnad)} &nbsp;(${pct(realPct)})</span></div>
+  `;
+
+  // Stats
+  document.getElementById('purchaseStats').innerHTML = `
+    <div class="stat s-green">
+      <div class="stat-label">MVA tilbake</div>
+      <div class="stat-value">${kr(mvaRefusjon)}</div>
+      <div class="stat-note">I neste MVA-oppgjør</div>
+    </div>
+    <div class="stat s-green">
+      <div class="stat-label">Skattebesparelse</div>
+      <div class="stat-value">${kr(skattebespar)}</div>
+      <div class="stat-note">Lavere selskapsskatt</div>
+    </div>
+    <div class="stat s-blue">
+      <div class="stat-label">Realkostnad</div>
+      <div class="stat-value">${kr(realkostnad)}</div>
+      <div class="stat-note">${pct(realPct)} av kjøpsprisen</div>
+    </div>
+    <div class="stat s-orange">
+      <div class="stat-label">Tilsv. lønnskostnad</div>
+      <div class="stat-value">${kr(lonnKostnad)}</div>
+      <div class="stat-note">Brutto + AGA</div>
+    </div>
+  `;
+
+  // Info
+  document.getElementById('purchaseInfo').innerHTML =
+    `<strong>Likviditet:</strong> Du betaler ${kr(pris)} nå. MVA-refusjonen (${kr(mvaRefusjon)}) og skattebesparelsen (${kr(skattebespar)}) realiseres seinere. &nbsp;|&nbsp;
+     <strong>Vs. lønn:</strong> For tilsvarende kjøpekraft via lønn ville Systek brukt ${kr(lonnKostnad)} (brutto + AGA). Kjøp gjennom selskapet sparer ca. ${kr(besparelse)}.`;
+
+
+  // Chart
+  if (chartPurchase) chartPurchase.destroy();
+  const ctx = document.getElementById('purchaseChart').getContext('2d');
+  chartPurchase = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Kjøpspris'],
+      datasets: [
+        { label: `Realkostnad (${pct(realPct)})`, data: [realkostnad], backgroundColor: '#3b82f6', borderRadius: 4 },
+        { label: `Skattebesparelse`, data: [skattebespar], backgroundColor: '#10b981' },
+        { label: `MVA-refusjon`, data: [mvaRefusjon], backgroundColor: '#f59e0b' },
+      ],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, ticks: { callback: v => kr(v) }, grid: { color: '#f3f4f6' } },
+        y: { stacked: true, display: false },
+      },
+    },
+  });
+}
+
+// ═══════════════════════════════════════
+// RENDER: SEKSJON 2 — PERSONLIG SKATT
+// ═══════════════════════════════════════
+function renderSkatt() {
+  const brutto  = num('salary');
+  const agaPct  = num('agaRate');
+  const { minstefradrag, alminneligInnt, alminneligSkatt, trinnskatt, trygdeavgift, totalSkatt, netto, effektivSats, marginalSats } = beregnPersonligSkatt(brutto);
+  const aga     = brutto * (agaPct / 100);
+  const totalKostnad = brutto + aga;
+
+  document.getElementById('taxSteps').innerHTML = `
+    <div class="step"><span class="s-label">Årslønn (brutto)</span><span class="s-val">${kr(brutto)}</span></div>
+    <div class="step"><span class="s-label">− Minstefradrag (46 %, maks 104 450 kr)</span><span class="s-val neg">− ${kr(minstefradrag)}</span></div>
+    <div class="step"><span class="s-label">− Personfradrag</span><span class="s-val neg">− ${kr(PERSONFRADRAG)}</span></div>
+    <div class="step"><span class="s-label">= Alminnelig inntekt (22 %)</span><span class="s-val">${kr(alminneligInnt)} → skatt: ${kr(alminneligSkatt)}</span></div>
+    <div class="step"><span class="s-label">+ Trinnskatt (progressiv, på brutto)</span><span class="s-val pos">${kr(trinnskatt)}</span></div>
+    <div class="step"><span class="s-label">+ Trygdeavgift (7,8 % av brutto)</span><span class="s-val pos">${kr(trygdeavgift)}</span></div>
+    <div class="step total"><span class="s-label">= Netto lønn</span><span class="s-val">${kr(netto)}</span></div>
+  `;
+
+  document.getElementById('taxStats').innerHTML = `
+    <div class="stat s-green">
+      <div class="stat-label">Netto lønn</div>
+      <div class="stat-value">${kr(netto)}</div>
+      <div class="stat-note">Etter all skatt</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total skatt</div>
+      <div class="stat-value">${kr(totalSkatt)}</div>
+      <div class="stat-note">Effektiv: ${pct(effektivSats)}</div>
+    </div>
+    <div class="stat s-blue">
+      <div class="stat-label">Marginalskatt</div>
+      <div class="stat-value">${pct(marginalSats)}</div>
+      <div class="stat-note">På neste krone</div>
+    </div>
+    <div class="stat s-orange">
+      <div class="stat-label">Systeks totalkostnad</div>
+      <div class="stat-value">${kr(totalKostnad)}</div>
+      <div class="stat-note">Lønn + AGA (${agaPct} %)</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════
+// RENDER: SEKSJON 3 — NULLPUNKT
+// ═══════════════════════════════════════
+function renderNullpunkt() {
+  const inntekter = num('companyRevenue');
+  const andreUtg  = num('otherExpenses');
+  const corpPct   = num('corpTax') / 100;
+  const pris      = num('purchasePrice');
+  const mvaSats   = num('mvaRate');
+  const { exMva } = beregnKjop(pris, mvaSats, num('corpTax'));
+
+  const totUtg      = andreUtg + exMva;
+  const overskudd   = Math.max(0, inntekter - totUtg);
+  const selskSkatt  = overskudd * corpPct;
+  const nullpunkt   = inntekter;   // utgifter needed for zero tax
+  const mangler     = Math.max(0, nullpunkt - totUtg);
+  const overskudSpart = mangler > 0 ? 0 : Math.abs(nullpunkt - totUtg);
+
+  document.getElementById('breakEvenStats').innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Inntekter</div>
+      <div class="stat-value">${kr(inntekter)}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Totale utgifter</div>
+      <div class="stat-value">${kr(totUtg)}</div>
+      <div class="stat-note">inkl. kjøp ex-MVA: ${kr(exMva)}</div>
+    </div>
+    <div class="stat ${overskudd === 0 ? 's-green' : 's-orange'}">
+      <div class="stat-label">Skattepliktig overskudd</div>
+      <div class="stat-value">${kr(overskudd)}</div>
+    </div>
+    <div class="stat ${selskSkatt === 0 ? 's-green' : 's-blue'}">
+      <div class="stat-label">Selskapsskatt</div>
+      <div class="stat-value">${kr(selskSkatt)}</div>
+      <div class="stat-note">${(corpPct*100).toFixed(1)} % av overskudd</div>
+    </div>
+  `;
+
+  const infoEl = document.getElementById('breakEvenInfo');
+  if (selskSkatt === 0) {
+    infoEl.className = 'info good';
+    infoEl.innerHTML = `<strong>Nullpunkt nådd!</strong> Selskapet betaler 0 kr i selskapsskatt. Utgiftene (${kr(totUtg)}) dekker hele inntekten.`;
+  } else {
+    infoEl.className = 'info';
+    infoEl.innerHTML = `<strong>Mangler ${kr(mangler)} i fradragsberettigede utgifter for å nå nullpunktet.</strong>
+      Nullpunktet er ved ${kr(nullpunkt)} totale utgifter. Med ${kr(totUtg)} nåværende utgifter er skattepliktig overskudd ${kr(overskudd)},
+      noe som gir ${kr(selskSkatt)} i selskapsskatt.`;
+  }
+
+  // Graf: skattebetaling som funksjon av totale utgifter
+  const punkter   = 30;
+  const maksCost  = inntekter * 1.3;
+  const xData     = Array.from({length: punkter + 1}, (_, i) => (maksCost / punkter) * i);
+  const ySkatt    = xData.map(utg => Math.max(0, (inntekter - utg) * corpPct));
+  const nuData    = xData.map(() => null);
+
+  // Marker nåværende posisjon
+  const currIdx = Math.round((totUtg / maksCost) * punkter);
+  const markerData = xData.map((_, i) => (i === Math.min(currIdx, punkter) ? selskSkatt : null));
+
+  if (chartBreakEven) chartBreakEven.destroy();
+  const ctx = document.getElementById('breakEvenChart').getContext('2d');
+  chartBreakEven = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: xData,
+      datasets: [
+        {
+          label: 'Selskapsskatt',
+          data: ySkatt,
+          borderColor: '#1a56db',
+          backgroundColor: 'rgba(26,86,219,0.07)',
+          fill: true,
+          tension: 0.1,
+          pointRadius: 0,
+          borderWidth: 2,
+        },
+        {
+          label: 'Din nåværende posisjon',
+          data: markerData,
+          borderColor: '#d97706',
+          backgroundColor: '#d97706',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          showLine: false,
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: items => `Utgifter: ${kr(items[0].parsed.x)}`,
+            label: item => `Selskapsskatt: ${kr(item.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          ticks: { callback: v => kr(v), maxTicksLimit: 6 },
+          title: { display: true, text: 'Totale utgifter (kr)', font: { size: 11 } },
+        },
+        y: {
+          ticks: { callback: v => kr(v) },
+          title: { display: true, text: 'Selskapsskatt (kr)', font: { size: 11 } },
+        },
+      },
+    },
+  });
+}
+
+// ═══════════════════════════════════════
+// RENDER: SEKSJON 4 — UTBYTTE VS LØNN
+// ═══════════════════════════════════════
+function renderUtbytte() {
+  const targetNetto  = num('targetNet');
+  const shieldBase   = num('shieldBase');
+  const shieldRate   = num('shieldRate') / 100;
+  const salary       = num('salary');
+  const agaPct       = num('agaRate') / 100;
+  const taxInfo      = beregnPersonligSkatt(salary);
+
+  // ── Metode 1: Lønn ──
+  const bruttoNok    = targetNetto > 0 ? targetNetto / (1 - taxInfo.marginalSats) : 0;
+  const agaNok       = bruttoNok * agaPct;
+  const lonnTotalKost = bruttoNok + agaNok;
+  const lonnSkatt    = bruttoNok - targetNetto;
+
+  // ── Metode 2: Utbytte holding → privat ──
+  const skjerming    = shieldBase * shieldRate;
+  // løse for brutto:  netto = brutto - max(0, brutto - skjerming) × UTBYTTE_EFFEKTIV
+  // hvis brutto > skjerming: netto = brutto(1 - UTBYTTE_EFFEKTIV) + skjerming·UTBYTTE_EFFEKTIV
+  let utbytteBrutto, utbytteSkatt;
+  if (targetNetto <= skjerming * (1 - UTBYTTE_EFFEKTIV) + skjerming * UTBYTTE_EFFEKTIV) {
+    // dekkes av skjerming
+    utbytteBrutto = targetNetto;
+    utbytteSkatt  = 0;
+  } else {
+    utbytteBrutto = (targetNetto - skjerming * UTBYTTE_EFFEKTIV) / (1 - UTBYTTE_EFFEKTIV);
+    utbytteSkatt  = Math.max(0, utbytteBrutto - skjerming) * UTBYTTE_EFFEKTIV;
+  }
+
+  // ── Metode 3: Holding akkumulerer (fritaksmetoden) ──
+  // Skatt holdingsselskapet betaler ved å motta utbytte fra Systek
+  const fritaksSkatt = targetNetto * FRITAKSMETODEN;
+  const besparelse   = lonnTotalKost - utbytteBrutto;
+
+  document.getElementById('dividendTable').innerHTML = `
+    <thead>
+      <tr>
+        <th>Metode</th>
+        <th>Brutto utbetalt</th>
+        <th>Skatt</th>
+        <th>Netto privat</th>
+        <th>Effektiv skatt</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="worst">
+        <td>Lønn fra Systek<br><span class="badge b-orange">Dyreste</span></td>
+        <td>${kr(bruttoNok)}<br><small style="color:var(--gray-400);">+ AGA: ${kr(agaNok)}</small></td>
+        <td>${kr(lonnSkatt)}</td>
+        <td>${kr(targetNetto)}</td>
+        <td>${pct(taxInfo.marginalSats)}</td>
+      </tr>
+      <tr>
+        <td>Utbytte holding → privat<br><span class="badge b-blue">Middels</span></td>
+        <td>${kr(utbytteBrutto)}</td>
+        <td>${kr(utbytteSkatt)}</td>
+        <td>${kr(targetNetto)}</td>
+        <td>${pct(UTBYTTE_EFFEKTIV)}<br><small style="color:var(--gray-400);">Skjerming: ${kr(skjerming)} skattefritt</small></td>
+      </tr>
+      <tr class="best">
+        <td>Holding beholder kapitalen<br><span class="badge b-green">Gunstigst</span></td>
+        <td>—</td>
+        <td>${kr(fritaksSkatt)}<br><small>(fritaksmetoden)</small></td>
+        <td>Utsatt</td>
+        <td>${pct(FRITAKSMETODEN, 2)}<br><small>Betaler full skatt ved uttak</small></td>
+      </tr>
+    </tbody>
+  `;
+
+  document.getElementById('dividendInfo').innerHTML =
+    `<strong>Skjermingsfradrag:</strong> Med ${kr(shieldBase)} innskutt kapital og ${(shieldRate*100).toFixed(1)} % skjermingsrente
+     er ${kr(skjerming)} av utbyttet per år skattefritt.
+     <br><br>
+     <strong>Fritaksmetoden:</strong> Holding mottar utbytte fra Systek AS (pga. aksjer) og betaler kun ~0,66 % effektiv skatt
+     (3 % × 22 %). Kapitalen akkumuleres i holdingen — full utbytteskatt (${pct(UTBYTTE_EFFEKTIV)}) betales først ved privat uttak.
+     <br><br>
+     <strong>Besparelse lønn vs. utbytte:</strong> For ${kr(targetNetto)} netto privat sparer du ${kr(Math.max(0, besparelse))}
+     ved utbytte fremfor lønn (inkl. AGA-besparelse).`;
+
+  // Graf
+  if (chartDividend) chartDividend.destroy();
+  const ctx = document.getElementById('dividendChart').getContext('2d');
+  chartDividend = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Lønn (inkl. AGA)', 'Utbytte → privat', 'Holding akkumulerer'],
+      datasets: [
+        {
+          label: 'Skatt og AGA',
+          data: [lonnSkatt + agaNok, utbytteSkatt, fritaksSkatt],
+          backgroundColor: '#ef4444',
+          borderRadius: 4,
+        },
+        {
+          label: 'Netto til deg',
+          data: [targetNetto, targetNetto, targetNetto],
+          backgroundColor: '#10b981',
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: item => `${item.dataset.label}: ${kr(item.raw)}` } },
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, ticks: { callback: v => kr(v) } },
+      },
+    },
+  });
+}
+
+// ═══════════════════════════════════════
+// OPPDATER ALT
+// ═══════════════════════════════════════
+function oppdaterAlt() {
+  renderKjop();
+  renderSkatt();
+  renderNullpunkt();
+  renderUtbytte();
+}
+
+// ═══════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════
+function kobleSlider(sliderId, visId) {
+  const slider = document.getElementById(sliderId);
+  const vis    = document.getElementById(visId);
+  slider.addEventListener('input', () => {
+    vis.textContent = parseFloat(slider.value).toFixed(1).replace('.', ',') + ' %';
+    oppdaterAlt();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  kobleSlider('agaRate',  'agaRateVal');
+  kobleSlider('corpTax',  'corpTaxVal');
+  kobleSlider('shieldRate','shieldRateVal');
+
+  ['salary','purchasePrice','mvaRate','companyRevenue','otherExpenses','targetNet','shieldBase']
+    .forEach(id => document.getElementById(id).addEventListener('input', oppdaterAlt));
+
+  oppdaterAlt();
+});
+</script>
+</body>
+</html>
