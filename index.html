@@ -199,7 +199,11 @@ footer li::before { content: '→ '; opacity: 0.5; }
 
     <div id="purchaseStats" class="stat-grid" style="margin-top:14px;"></div>
 
-    <div class="chart-wrap chart-h80">
+    <div style="margin-top:20px; font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--gray-400);">Konsulentmodellen — hva du gir opp i bonus</div>
+    <div style="font-size:0.8rem; color:var(--gray-400); margin-bottom:10px;">Hvis du IKKE kjøper, havner ex-MVA-beløpet i bonuspoolen og utbetales som lønn</div>
+    <div id="poolSteps" class="steps"></div>
+
+    <div class="chart-wrap chart-h80" style="margin-top:20px;">
       <canvas id="purchaseChart"></canvas>
     </div>
 
@@ -392,17 +396,28 @@ function renderKjop() {
   const exMvaPct = pris > 0 ? exMva / pris : 0;
   const taxInfo  = beregnPersonligSkatt(salary);
 
-  // Hva du ville trengt i bruttolønn for å kjøpe dette privat
-  const bruttoTilsv = pris > 0 ? pris / (1 - taxInfo.marginalSats) : 0;
-  const agaTilsv    = bruttoTilsv * (agaPct / 100);
-  const lonnKostnad = bruttoTilsv + agaTilsv;
-  const besparelse  = lonnKostnad - exMva;
+  // Konsulentmodellen: hva gir du opp i netto bonus?
+  const agaFaktor    = 1 + (agaPct / 100);
+  const bruttoFraPool = exMva / agaFaktor;               // brutto lønn etter AGA er trukket
+  const agaFraPool    = exMva - bruttoFraPool;            // AGA-beløp til staten
+  const skattFraPool  = bruttoFraPool * taxInfo.marginalSats; // inntektsskatt
+  const nettoTapBonus = bruttoFraPool - skattFraPool;     // det du gir opp netto
+  const realKostPct   = pris > 0 ? nettoTapBonus / pris : 0;
 
-  // Steps
+  // Steps — kjøpsmodell
   document.getElementById('purchaseSteps').innerHTML = `
     <div class="step"><span class="s-label">Kjøpspris inkl. ${mvaSats} % MVA</span><span class="s-val pos">${kr(pris)}</span></div>
-    <div class="step"><span class="s-label">− MVA-refusjon (${pct(mvaSats/(100+mvaSats))} av prisen)</span><span class="s-val neg">− ${kr(mvaRefusjon)}</span></div>
-    <div class="step total"><span class="s-label">= Realkostnad for Systek</span><span class="s-val">${kr(exMva)} &nbsp;(${pct(exMvaPct)} av kjøpsprisen)</span></div>
+    <div class="step"><span class="s-label">− MVA-refusjon</span><span class="s-val neg">− ${kr(mvaRefusjon)}</span></div>
+    <div class="step total"><span class="s-label">= Realkostnad for Systek (ex-MVA)</span><span class="s-val">${kr(exMva)}</span></div>
+  `;
+
+  // Steps — konsulentmodellen (bonuspool)
+  document.getElementById('poolSteps').innerHTML = `
+    <div class="step"><span class="s-label">Bonuspool (= ex-MVA beløp)</span><span class="s-val">${kr(exMva)}</span></div>
+    <div class="step"><span class="s-label">÷ 1,${(agaFaktor*100-100).toFixed(0)} (AGA) → brutto lønn du ville fått</span><span class="s-val">${kr(bruttoFraPool)}</span></div>
+    <div class="step"><span class="s-label">− AGA til staten (${agaPct} %)</span><span class="s-val pos">${kr(agaFraPool)}</span></div>
+    <div class="step"><span class="s-label">− Inntektsskatt (${pct(taxInfo.marginalSats)} marginal)</span><span class="s-val pos">${kr(skattFraPool)}</span></div>
+    <div class="step total"><span class="s-label">= Netto du gir opp — din reelle kostnad</span><span class="s-val">${kr(nettoTapBonus)} &nbsp;(${pct(realKostPct)} av kjøpsprisen)</span></div>
   `;
 
   // Stats
@@ -413,46 +428,45 @@ function renderKjop() {
       <div class="stat-note">I neste MVA-oppgjør</div>
     </div>
     <div class="stat s-blue">
-      <div class="stat-label">Realkostnad for Systek</div>
+      <div class="stat-label">Realkostnad Systek</div>
       <div class="stat-value">${kr(exMva)}</div>
       <div class="stat-note">${pct(exMvaPct)} av kjøpsprisen</div>
     </div>
-    <div class="stat s-green">
-      <div class="stat-label">Du betaler personlig</div>
-      <div class="stat-value">0 kr</div>
-      <div class="stat-note">Refundert av Systek</div>
-    </div>
     <div class="stat s-orange">
-      <div class="stat-label">Bruttolønn du ville trengt</div>
-      <div class="stat-value">${kr(bruttoTilsv)}</div>
-      <div class="stat-note">For å kjøpe privat etter skatt</div>
+      <div class="stat-label">Din reelle kostnad</div>
+      <div class="stat-value">${kr(nettoTapBonus)}</div>
+      <div class="stat-note">${pct(realKostPct)} — tapt nettbonus</div>
+    </div>
+    <div class="stat s-green">
+      <div class="stat-label">Du får noe verdt</div>
+      <div class="stat-value">${kr(exMva)}</div>
+      <div class="stat-note">for ${kr(nettoTapBonus)} i reell kostnad</div>
     </div>
   `;
 
   // Info
   document.getElementById('purchaseInfo').innerHTML =
-    `<strong>Likviditet:</strong> Du betaler ${kr(pris)} nå og får alt tilbake på neste lønn. MVA-refusjonen (${kr(mvaRefusjon)}) realiseres i neste MVA-oppgjør.
+    `Kjøper du GPU-en gjennom selskapet, slipper du hele skatte- og AGA-prosessen.
+     Du får noe verdt <strong>${kr(exMva)}</strong>, og de <strong>${kr(nettoTapBonus)}</strong> du ellers ville fått netto er din reelle kostnad — det du gir opp.
      <br><br>
-     <strong>Hvorfor ikke 22 % selskapsskatt?</strong> Systek får 22 % fradrag på lønn også — fradraget er likt uansett. Den reelle besparelsen er MVA-refusjonen og at du slipper å betale inntektsskatt på beløpet.
-     <br><br>
-     <strong>Vs. privat kjøp:</strong> For å kjøpe dette privat ville du trengt ${kr(bruttoTilsv)} i bruttolønn (etter ${pct(taxInfo.marginalSats)} marginalskatt). Systek bruker ${kr(exMva)} — en besparelse på ${kr(besparelse)} for selskapet.`;
+     <strong>Likviditet:</strong> Du betaler ${kr(pris)} nå og får alt tilbake på neste lønn. MVA-refusjonen (${kr(mvaRefusjon)}) realiseres i neste MVA-oppgjør.`;
 
-  // Chart — sammenligning: gjennom Systek vs. ekvivalent lønnskostnad
+  // Chart
   if (chartPurchase) chartPurchase.destroy();
   const ctx = document.getElementById('purchaseChart').getContext('2d');
   chartPurchase = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Gjennom Systek', 'Ekvivalent lønn + AGA'],
+      labels: ['Varen er verdt', 'Din reelle kostnad'],
       datasets: [
-        { label: 'Kostnad (kr)', data: [exMva, lonnKostnad], backgroundColor: ['#3b82f6', '#f59e0b'], borderRadius: 6 },
+        { label: 'kr', data: [exMva, nettoTapBonus], backgroundColor: ['#3b82f6', '#f59e0b'], borderRadius: 6 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: item => `${kr(item.raw)}` } },
+        tooltip: { callbacks: { label: item => kr(item.raw) } },
       },
       scales: {
         x: { grid: { display: false } },
