@@ -372,13 +372,11 @@ function beregnPersonligSkatt(brutto) {
   return { minstefradrag, alminneligInnt, alminneligSkatt, trinnskatt, trygdeavgift, totalSkatt, netto, effektivSats, marginalSats };
 }
 
-function beregnKjop(pris, mvaSats, corpPct) {
-  const mvaFaktor      = mvaSats / (100 + mvaSats);
-  const mvaRefusjon    = pris * mvaFaktor;
-  const exMva          = pris - mvaRefusjon;
-  const skattebespar   = exMva * (corpPct / 100);
-  const realkostnad    = exMva - skattebespar;
-  return { mvaRefusjon, exMva, skattebespar, realkostnad };
+function beregnKjop(pris, mvaSats) {
+  const mvaFaktor   = mvaSats / (100 + mvaSats);
+  const mvaRefusjon = pris * mvaFaktor;
+  const exMva       = pris - mvaRefusjon;
+  return { mvaRefusjon, exMva };
 }
 
 // ═══════════════════════════════════════
@@ -387,27 +385,24 @@ function beregnKjop(pris, mvaSats, corpPct) {
 function renderKjop() {
   const pris    = num('purchasePrice');
   const mvaSats = num('mvaRate');
-  const corpPct = num('corpTax');
   const agaPct  = num('agaRate');
   const salary  = num('salary');
 
-  const { mvaRefusjon, exMva, skattebespar, realkostnad } = beregnKjop(pris, mvaSats, corpPct);
-  const realPct = pris > 0 ? realkostnad / pris : 0;
-  const taxInfo = beregnPersonligSkatt(salary);
+  const { mvaRefusjon, exMva } = beregnKjop(pris, mvaSats);
+  const exMvaPct = pris > 0 ? exMva / pris : 0;
+  const taxInfo  = beregnPersonligSkatt(salary);
 
-  // Alternativkostnad: hva ville selskapet brukt for å gi tilsvarende kjøpekraft via lønn?
-  const bruttoTilsv  = pris > 0 ? pris / (1 - taxInfo.marginalSats) : 0;
-  const agaTilsv     = bruttoTilsv * (agaPct / 100);
-  const lonnKostnad  = bruttoTilsv + agaTilsv;
-  const besparelse   = lonnKostnad - realkostnad;
+  // Hva du ville trengt i bruttolønn for å kjøpe dette privat
+  const bruttoTilsv = pris > 0 ? pris / (1 - taxInfo.marginalSats) : 0;
+  const agaTilsv    = bruttoTilsv * (agaPct / 100);
+  const lonnKostnad = bruttoTilsv + agaTilsv;
+  const besparelse  = lonnKostnad - exMva;
 
   // Steps
   document.getElementById('purchaseSteps').innerHTML = `
     <div class="step"><span class="s-label">Kjøpspris inkl. ${mvaSats} % MVA</span><span class="s-val pos">${kr(pris)}</span></div>
     <div class="step"><span class="s-label">− MVA-refusjon (${pct(mvaSats/(100+mvaSats))} av prisen)</span><span class="s-val neg">− ${kr(mvaRefusjon)}</span></div>
-    <div class="step"><span class="s-label">= Ex-MVA pris</span><span class="s-val">${kr(exMva)}</span></div>
-    <div class="step"><span class="s-label">− Selskapsskatt spart (${corpPct} % av ex-MVA)</span><span class="s-val neg">− ${kr(skattebespar)}</span></div>
-    <div class="step total"><span class="s-label">= Realkostnad for selskapet</span><span class="s-val">${kr(realkostnad)} &nbsp;(${pct(realPct)})</span></div>
+    <div class="step total"><span class="s-label">= Realkostnad for Systek</span><span class="s-val">${kr(exMva)} &nbsp;(${pct(exMvaPct)} av kjøpsprisen)</span></div>
   `;
 
   // Stats
@@ -417,48 +412,51 @@ function renderKjop() {
       <div class="stat-value">${kr(mvaRefusjon)}</div>
       <div class="stat-note">I neste MVA-oppgjør</div>
     </div>
-    <div class="stat s-green">
-      <div class="stat-label">Skattebesparelse</div>
-      <div class="stat-value">${kr(skattebespar)}</div>
-      <div class="stat-note">Lavere selskapsskatt</div>
-    </div>
     <div class="stat s-blue">
-      <div class="stat-label">Realkostnad</div>
-      <div class="stat-value">${kr(realkostnad)}</div>
-      <div class="stat-note">${pct(realPct)} av kjøpsprisen</div>
+      <div class="stat-label">Realkostnad for Systek</div>
+      <div class="stat-value">${kr(exMva)}</div>
+      <div class="stat-note">${pct(exMvaPct)} av kjøpsprisen</div>
+    </div>
+    <div class="stat s-green">
+      <div class="stat-label">Du betaler personlig</div>
+      <div class="stat-value">0 kr</div>
+      <div class="stat-note">Refundert av Systek</div>
     </div>
     <div class="stat s-orange">
-      <div class="stat-label">Tilsv. lønnskostnad</div>
-      <div class="stat-value">${kr(lonnKostnad)}</div>
-      <div class="stat-note">Brutto + AGA</div>
+      <div class="stat-label">Bruttolønn du ville trengt</div>
+      <div class="stat-value">${kr(bruttoTilsv)}</div>
+      <div class="stat-note">For å kjøpe privat etter skatt</div>
     </div>
   `;
 
   // Info
   document.getElementById('purchaseInfo').innerHTML =
-    `<strong>Likviditet:</strong> Du betaler ${kr(pris)} nå. MVA-refusjonen (${kr(mvaRefusjon)}) og skattebesparelsen (${kr(skattebespar)}) realiseres seinere. &nbsp;|&nbsp;
-     <strong>Vs. lønn:</strong> For tilsvarende kjøpekraft via lønn ville Systek brukt ${kr(lonnKostnad)} (brutto + AGA). Kjøp gjennom selskapet sparer ca. ${kr(besparelse)}.`;
+    `<strong>Likviditet:</strong> Du betaler ${kr(pris)} nå og får alt tilbake på neste lønn. MVA-refusjonen (${kr(mvaRefusjon)}) realiseres i neste MVA-oppgjør.
+     <br><br>
+     <strong>Hvorfor ikke 22 % selskapsskatt?</strong> Systek får 22 % fradrag på lønn også — fradraget er likt uansett. Den reelle besparelsen er MVA-refusjonen og at du slipper å betale inntektsskatt på beløpet.
+     <br><br>
+     <strong>Vs. privat kjøp:</strong> For å kjøpe dette privat ville du trengt ${kr(bruttoTilsv)} i bruttolønn (etter ${pct(taxInfo.marginalSats)} marginalskatt). Systek bruker ${kr(exMva)} — en besparelse på ${kr(besparelse)} for selskapet.`;
 
-
-  // Chart
+  // Chart — sammenligning: gjennom Systek vs. ekvivalent lønnskostnad
   if (chartPurchase) chartPurchase.destroy();
   const ctx = document.getElementById('purchaseChart').getContext('2d');
   chartPurchase = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Kjøpspris'],
+      labels: ['Gjennom Systek', 'Ekvivalent lønn + AGA'],
       datasets: [
-        { label: `Realkostnad (${pct(realPct)})`, data: [realkostnad], backgroundColor: '#3b82f6', borderRadius: 4 },
-        { label: `Skattebesparelse`, data: [skattebespar], backgroundColor: '#10b981' },
-        { label: `MVA-refusjon`, data: [mvaRefusjon], backgroundColor: '#f59e0b' },
+        { label: 'Kostnad (kr)', data: [exMva, lonnKostnad], backgroundColor: ['#3b82f6', '#f59e0b'], borderRadius: 6 },
       ],
     },
     options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: item => `${kr(item.raw)}` } },
+      },
       scales: {
-        x: { stacked: true, ticks: { callback: v => kr(v) }, grid: { color: '#f3f4f6' } },
-        y: { stacked: true, display: false },
+        x: { grid: { display: false } },
+        y: { ticks: { callback: v => kr(v) }, grid: { color: '#f3f4f6' } },
       },
     },
   });
@@ -517,7 +515,7 @@ function renderNullpunkt() {
   const corpPct   = num('corpTax') / 100;
   const pris      = num('purchasePrice');
   const mvaSats   = num('mvaRate');
-  const { exMva } = beregnKjop(pris, mvaSats, num('corpTax'));
+  const { exMva } = beregnKjop(pris, mvaSats);
 
   const totUtg      = andreUtg + exMva;
   const overskudd   = Math.max(0, inntekter - totUtg);
