@@ -168,6 +168,13 @@ footer li::before { content: '→ '; opacity: 0.5; }
           <span class="slider-val" id="corpTaxVal">22 %</span>
         </div>
       </div>
+      <div class="form-group">
+        <label>Feriepenger <small>(12 % er vanlig)</small></label>
+        <div class="slider-row">
+          <input type="range" id="ferieRate" min="10.2" max="14.3" step="0.1" value="12">
+          <span class="slider-val" id="ferieRateVal">12,0 %</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -480,11 +487,16 @@ function renderKjop() {
 // RENDER: SEKSJON 2 — PERSONLIG SKATT
 // ═══════════════════════════════════════
 function renderSkatt() {
-  const brutto  = num('salary');
-  const agaPct  = num('agaRate');
+  const brutto     = num('salary');
+  const agaPct     = num('agaRate');
+  const feriePct   = num('ferieRate');
   const { minstefradrag, alminneligInnt, alminneligSkatt, trinnskatt, trygdeavgift, totalSkatt, netto, effektivSats, marginalSats } = beregnPersonligSkatt(brutto);
-  const aga     = brutto * (agaPct / 100);
-  const totalKostnad = brutto + aga;
+
+  // Systeks totale arbeidskostnad
+  const feriepenger     = brutto * (feriePct / 100);
+  const agaPaLonn       = brutto * (agaPct / 100);
+  const agaPaFerie      = feriepenger * (agaPct / 100);
+  const totalKostnad    = brutto + feriepenger + agaPaLonn + agaPaFerie;
 
   document.getElementById('taxSteps').innerHTML = `
     <div class="step"><span class="s-label">Årslønn (brutto)</span><span class="s-val">${kr(brutto)}</span></div>
@@ -515,8 +527,17 @@ function renderSkatt() {
     <div class="stat s-orange">
       <div class="stat-label">Systeks totalkostnad</div>
       <div class="stat-value">${kr(totalKostnad)}</div>
-      <div class="stat-note">Lønn + AGA (${agaPct} %)</div>
+      <div class="stat-note">Lønn + feriepenger + AGA</div>
     </div>
+  `;
+
+  document.getElementById('taxSteps').innerHTML += `
+    <div style="margin-top:14px; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--gray-400); padding: 4px 0;">Systeks totale arbeidskostnad</div>
+    <div class="step"><span class="s-label">Årslønn</span><span class="s-val">${kr(brutto)}</span></div>
+    <div class="step"><span class="s-label">+ Feriepenger (${feriePct} % av lønn)</span><span class="s-val pos">${kr(feriepenger)}</span></div>
+    <div class="step"><span class="s-label">+ AGA på lønn (${agaPct} %)</span><span class="s-val pos">${kr(agaPaLonn)}</span></div>
+    <div class="step"><span class="s-label">+ AGA på feriepenger (${agaPct} %)</span><span class="s-val pos">${kr(agaPaFerie)}</span></div>
+    <div class="step total"><span class="s-label">= Systeks totale arbeidskostnad</span><span class="s-val">${kr(totalKostnad)}</span></div>
   `;
 }
 
@@ -778,8 +799,9 @@ function kobleSlider(sliderId, visId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  kobleSlider('agaRate',  'agaRateVal');
-  kobleSlider('corpTax',  'corpTaxVal');
+  kobleSlider('agaRate',   'agaRateVal');
+  kobleSlider('corpTax',   'corpTaxVal');
+  kobleSlider('ferieRate', 'ferieRateVal');
   kobleSlider('shieldRate','shieldRateVal');
 
   ['salary','purchasePrice','mvaRate','companyRevenue','otherExpenses','targetNet','shieldBase']
